@@ -78,7 +78,7 @@ public class Location extends Service implements LocationListener {
                 longitud = location.getLongitude();
 
 
-                Toast.makeText(context,"ojo "+longitud,Toast.LENGTH_LONG).show();
+
 
             }catch (Exception e){
                 System.out.println("Error: "+e.getMessage());
@@ -93,7 +93,7 @@ public class Location extends Service implements LocationListener {
         double latitude=location.getLatitude();
         double longitude=location.getLongitude();
 
-        System.out.println("Loca: "+location.getLatitude());
+
 
 
 

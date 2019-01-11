@@ -4,6 +4,9 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteBindOrColumnIndexOutOfRangeException;
+import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
@@ -21,10 +24,14 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.InstallCallbackInterface;
 import org.opencv.android.JavaCameraView;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
+import org.opencv.core.CvException;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
@@ -63,28 +70,24 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         cameraBridgeViewBase.setCvCameraViewListener(this);
 
         //GPS location
-        Location location  = new Location(getApplicationContext());
+        final Location location  = new Location(getApplicationContext());
+
+        Db db = new Db(getApplicationContext());
+        final SQLiteDatabase dbs = db.getWritableDatabase();
+
+        //Inicia el usuario por defecto
+        //---------------------------------------------------------------
+        //El módulo de creación de usuario se implementará en la ejecución del resto del proyecto
+        //---------------------------------------------------------------
+         try{
+             dbs.execSQL("insert into usuario values (1,'Sebastián')");
+         }catch (Exception e){}
 
 
 
 
 
-        //Botón de capturar imagen
-        final Button captura = findViewById(R.id.btnCaptura);
-        captura.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                saveImgInfo();
 
-                Map<String, String> postData = new HashMap<>();
-                postData.put("tipo", "1");
-                postData.put("longitud", "2");
-                postData.put("latitud", "3");
-                postData.put("usuario", "1");
-                Server task = new Server(postData);
-                task.execute("obstaculo/crear");
-            }
-        });
 
 
         baseLoaderCallback = new BaseLoaderCallback(    this) {
@@ -116,6 +119,8 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
 
 
     public void saveImgInfo(){
+
+        /*
         //Mat mIntermediateMat = new Mat();
 
 
@@ -131,11 +136,8 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
 
         String filename = file.toString();
         Boolean bool = Highgui.imwrite(filename, gray);
+        */
 
-        if (bool)
-            Toast.makeText(getApplicationContext(),"Imagen almacenada",Toast.LENGTH_LONG).show();
-        else
-            Toast.makeText(getApplicationContext(),"Imagen no almacenada",Toast.LENGTH_LONG).show();
     }
 
 
@@ -197,18 +199,6 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
 
 
         /*
-        //Visualización normal
-        Imgproc.cvtColor(inputFrame.rgba(),mat1,Imgproc.COLOR_BGR2HSV);
-        Core.inRange(mat1,scalarLow,scalarHight,mat2);
-        //Rota el marco 90 grados
-        Core.transpose(mat1,mat2);
-        Imgproc.resize(mat2,mat3,mat3.size(),0,0,0);
-        Core.flip(mat3,mat1,1);
-
-
-        return mat1;
-        */
-
 
         //Camnny
         mat1 = inputFrame.rgba();
@@ -217,10 +207,88 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         Imgproc.resize(Rgabt,Rgabt,mat1.size());
         Imgproc.cvtColor(Rgabt,gray,Imgproc.COLOR_BGR2GRAY);
         Imgproc.Canny(gray,CannyImg,100,80);
-
-
-
         return CannyImg;
+        */
+
+
+
+        //Camnny
+        mat1 = inputFrame.rgba();
+        Mat Rgabt = mat1.t();
+        Core.flip(mat1.t(),Rgabt,1);
+        Imgproc.resize(Rgabt,Rgabt,mat1.size());
+        Imgproc.cvtColor(Rgabt,gray,Imgproc.COLOR_BGR2GRAY);
+
+        //Rota el marco 90 grados
+        Core.transpose(mat1,mat2);
+        Imgproc.resize(mat2,mat3,mat3.size(),0,0,0);
+        Core.flip(mat3,mat1,1);
+
+        /* reduce the noise so we avoid false circle detection */
+        Imgproc.GaussianBlur(gray, gray, new Size(9, 9), 2, 2);
+
+
+        // accumulator value
+        double dp = 1.2d;
+        // minimum distance between the center coordinates of detected circles in pixels
+        double minDist = 20;
+
+        // min and max radii (set these values as you desire)
+        int minRadius = 0, maxRadius = 0;
+        double param1 = 70, param2 = 72;
+
+
+
+
+        Bitmap bitmap = null;
+        Mat tmp = new Mat (mat1.rows(), mat1.cols(), CvType.CV_8U, new Scalar(4));
+        try {
+            //Imgproc.cvtColor(seedsImage, tmp, Imgproc.COLOR_GRAY2RGBA, 4);
+            bitmap = Bitmap.createBitmap(tmp.cols(), tmp.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(tmp, bitmap);
+        }
+        catch (CvException ex){ System.out.println("Errors: "+ ex.getMessage());}
+
+
+        Mat circles = new Mat(bitmap.getWidth(),
+                bitmap.getHeight(), CvType.CV_8UC1);
+
+        /* find the circle in the image */
+        Imgproc.HoughCircles(gray, circles,
+                Imgproc.CV_HOUGH_GRADIENT, dp, minDist, param1,
+                param2, minRadius, maxRadius);
+
+        /* get the number of circles detected */
+        int numberOfCircles = (circles.rows() == 0) ? 0 : circles.cols();
+
+        /* draw the circles found on the image */
+        for (int i=0; i<numberOfCircles; i++) {
+            System.out.println("Errors: we");
+
+            /* get the circle details, circleCoordinates[0, 1, 2] = (x,y,r)
+             * (x,y) are the coordinates of the circle's center
+             */
+            double[] circleCoordinates = circles.get(0, i);
+
+
+            int x = (int) circleCoordinates[0], y = (int) circleCoordinates[1];
+
+            Point center = new Point(x, y);
+
+            int radius = (int) circleCoordinates[2];
+
+            /* circle's outline */
+            Core.circle(mat1, center, radius, new Scalar(0,
+                    255, 0), 4);
+
+            /* circle's center outline */
+            Core.rectangle(mat1, new Point(x - 5, y - 5),
+                    new Point(x + 5, y + 5),
+                    new Scalar(0, 128, 255), -1);
+        }
+
+        return mat1;
+
 
 
 

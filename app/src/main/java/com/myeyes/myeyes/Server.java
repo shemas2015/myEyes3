@@ -26,7 +26,7 @@ import static java.net.Proxy.Type.HTTP;
 public class Server extends AsyncTask<String,Void,Void> {
 
 
-    private String server = "http://192.168.0.20:8081";
+    private String server = "http://192.168.0.20:8000";
     JSONObject postData;
     private String route = "";
 
