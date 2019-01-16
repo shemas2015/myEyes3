@@ -46,7 +46,7 @@ public class OpenCvCamera extends Imagen  implements CameraBridgeViewBase.CvCame
         cameraBridgeViewBase.setCvCameraViewListener(this);
 
 
-        baseLoaderCallback = new BaseLoaderCallback(    this.mainActivity) {
+        baseLoaderCallback = new BaseLoaderCallback(this.mainActivity) {
             @Override
             public void onManagerConnected(int status) {
 

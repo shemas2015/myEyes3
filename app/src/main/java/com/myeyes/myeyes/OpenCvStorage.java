@@ -46,9 +46,7 @@ public class OpenCvStorage extends Imagen {
                         super.onManagerConnected(status);
                         break;
                 }
-
             }
-
         };
 
         if(!OpenCVLoader.initDebug()){
@@ -76,7 +74,9 @@ public class OpenCvStorage extends Imagen {
         try{
             Bitmap bmp = BitmapFactory.decodeFile("/sdcard/ojos.jpg");
 
-            mat1 = new Mat (bmp.getHeight(), bmp.getWidth(), CvType.CV_8U, new Scalar(4));
+            mat1 = new Mat (bmp.getHeight(), bmp.getWidth(), CvType.CV_8U , new Scalar(4));
+
+
             Utils.bitmapToMat(bmp, mat1);
 
         }catch (Exception ex){
@@ -89,8 +89,10 @@ public class OpenCvStorage extends Imagen {
 
 
 
-        /*
+
+
         Bitmap bitmap = null;
+
         Mat tmp = new Mat (mat1.rows(), mat1.cols(), CvType.CV_8U, new Scalar(4));
         try {
             //Imgproc.cvtColor(seedsImage, tmp, Imgproc.COLOR_GRAY2RGBA, 4);
@@ -100,16 +102,24 @@ public class OpenCvStorage extends Imagen {
         catch (CvException ex){ System.out.println("Errors: "+ ex.getMessage());}
 
 
+
         Mat circles = new Mat(bitmap.getWidth(),
                 bitmap.getHeight(), CvType.CV_8UC1);
+
+        try{
+            Mat mRgba2 = new Mat (mat1.rows(), mat1.cols(), CvType.CV_8U, new Scalar(4));
+            Imgproc.cvtColor(mat1, mRgba2, Imgproc.COLOR_BGR2GRAY, 0);
         // find the circle in the image
-        Imgproc.HoughCircles(mat1, circles,
+        Imgproc.HoughCircles(mRgba2, circles,
                 Imgproc.CV_HOUGH_GRADIENT, dp, minDist, param1,
                 param2, minRadius, maxRadius);
+        }catch (Exception err){
+            System.out.println("Error: "+err.getMessage());
+        }
+
 
         // get the number of circles detected
         int numberOfCircles = (circles.rows() == 0) ? 0 : circles.cols();
-
 
 
         // draw the circles found on the image
@@ -137,7 +147,7 @@ public class OpenCvStorage extends Imagen {
                     new Point(x + 5, y + 5),
                     new Scalar(0, 128, 255), -1);
         }
-       */
-
+        SaveImage(mat1);
     }
+
 }
